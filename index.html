@@ -1,195 +1,39 @@
 <!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101820">
-  <title>坦克大战</title>
-  <style>
-    :root { color-scheme: dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
-    * { box-sizing: border-box; }
-    body {
-      min-height: 100vh; margin: 0; padding: 24px;
-      display: grid; place-items: center; color: #eef4f3;
-      background: radial-gradient(ellipse at top, #263a42, #101820 68%);
-    }
-    .game { width: min(100%, 840px); }
-    header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
-    h1 { margin: 0; font-size: clamp(1.35rem, 4vw, 2rem); letter-spacing: .06em; }
-    .stats { display: flex; gap: 18px; color: #c8d7d4; font-variant-numeric: tabular-nums; }
-    .stats strong { color: #fff; }
-    .board { position: relative; overflow: hidden; border: 2px solid #536a69; border-radius: 8px; box-shadow: 0 18px 50px #0008; }
-    canvas { display: block; width: 100%; height: auto; background: #18262b; }
-    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; color: #b6c7c4; font-size: .92rem; }
-    button { border: 1px solid #83c9ad; border-radius: 6px; padding: 9px 14px; color: #10251e; background: #83c9ad; font: inherit; font-weight: 700; cursor: pointer; }
-    button:hover { background: #a0e2c6; }
-    .message { position: absolute; inset: 0; display: grid; place-items: center; background: #0b1414b8; text-align: center; }
-    .message[hidden] { display: none; }
-    .message div { padding: 20px; }
-    .message h2 { margin: 0 0 8px; font-size: clamp(1.8rem, 7vw, 3rem); }
-    .message p { margin: 0; color: #d3e2df; }
-    @media (max-width: 560px) { body { padding: 14px; } header, .toolbar { align-items: flex-start; flex-direction: column; } .stats { gap: 12px; } }
-  </style>
-</head>
-<body>
-  <main class="game">
-    <header>
-      <h1>坦克大战</h1>
-      <div class="stats" aria-live="polite">
-        <span>分数 <strong id="score">0</strong></span>
-        <span>生命 <strong id="lives">3</strong></span>
-        <span>敌军 <strong id="remaining">8</strong></span>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101820">
+    <title>坦克大战</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+  </head>
+  <body>
+    <main class="game">
+      <header>
+        <h1>坦克大战</h1>
+        <div class="stats" aria-live="polite">
+          <span>分数 <strong id="score">0</strong></span>
+          <span>生命 <strong id="lives">3</strong></span>
+          <span>敌军 <strong id="remaining">8</strong></span>
+        </div>
+      </header>
+
+      <section class="board" aria-label="坦克大战游戏区域">
+        <canvas id="game" width="800" height="600" aria-label="使用方向键或 WASD 移动坦克，空格射击"></canvas>
+        <div class="message" id="message" hidden>
+          <div>
+            <h2 id="message-title"></h2>
+            <p id="message-text"></p>
+          </div>
+        </div>
+      </section>
+
+      <div class="toolbar">
+        <span>移动：WASD / 方向键　射击：空格　暂停：P</span>
+        <button id="restart" type="button">重新开始</button>
       </div>
-    </header>
-    <section class="board" aria-label="坦克大战游戏区域">
-      <canvas id="game" width="800" height="600" aria-label="使用方向键或 WASD 移动坦克，空格射击"></canvas>
-      <div class="message" id="message" hidden>
-        <div><h2 id="message-title"></h2><p id="message-text"></p></div>
-      </div>
-    </section>
-    <div class="toolbar">
-      <span>移动：WASD / 方向键　射击：空格　暂停：P</span>
-      <button id="restart" type="button">重新开始</button>
-    </div>
-  </main>
-  <script>
-    (() => {
-      const canvas = document.querySelector('#game');
-      const ctx = canvas.getContext('2d');
-      const scoreEl = document.querySelector('#score');
-      const livesEl = document.querySelector('#lives');
-      const remainingEl = document.querySelector('#remaining');
-      const message = document.querySelector('#message');
-      const messageTitle = document.querySelector('#message-title');
-      const messageText = document.querySelector('#message-text');
-      const W = canvas.width, H = canvas.height, TANK = 30;
-      const obstacles = [
-        { x: 150, y: 120, w: 110, h: 30 }, { x: 540, y: 120, w: 110, h: 30 },
-        { x: 350, y: 80, w: 100, h: 30 }, { x: 90, y: 280, w: 120, h: 30 },
-        { x: 590, y: 280, w: 120, h: 30 }, { x: 340, y: 250, w: 120, h: 30 },
-        { x: 150, y: 440, w: 110, h: 30 }, { x: 540, y: 440, w: 110, h: 30 },
-        { x: 350, y: 500, w: 100, h: 30 }
-      ];
-      const keys = new Set();
-      let player, enemies, bullets, score, lives, defeated, paused, ended, lastTime, shotCooldown;
+    </main>
 
-      function reset() {
-        player = { x: W / 2 - TANK / 2, y: H - 65, dir: 'up', speed: 190, color: '#58d68d' };
-        enemies = Array.from({ length: 8 }, (_, i) => ({
-          x: 60 + i * 95, y: 35, dir: 'down', speed: 70 + Math.random() * 25,
-          color: '#e85d5d', turnAt: 0, fireAt: 0.8 + Math.random() * 1.8
-        }));
-        bullets = []; score = 0; lives = 3; defeated = 0; paused = false; ended = false; shotCooldown = 0;
-        scoreEl.textContent = score; livesEl.textContent = lives; remainingEl.textContent = enemies.length;
-        message.hidden = true; lastTime = performance.now();
-      }
-
-      const directions = {
-        up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 }
-      };
-      function overlaps(a, b) {
-        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-      }
-      function blocked(x, y, size, otherTanks = true) {
-        const box = { x, y, w: size, h: size };
-        if (x < 0 || y < 0 || x + size > W || y + size > H) return true;
-        if (obstacles.some(wall => overlaps(box, wall))) return true;
-        return otherTanks && [player, ...enemies].filter(Boolean).some(t => t !== movingTank && overlaps(box, { x: t.x, y: t.y, w: TANK, h: TANK }));
-      }
-      let movingTank = null;
-      function moveTank(tank, dx, dy) {
-        movingTank = tank;
-        const nx = tank.x + dx, ny = tank.y + dy;
-        if (!blocked(nx, ny, TANK)) { tank.x = nx; tank.y = ny; }
-        movingTank = null;
-      }
-      function fire(tank, fromPlayer) {
-        const d = directions[tank.dir];
-        bullets.push({ x: tank.x + TANK / 2 - 4 + d.x * 17, y: tank.y + TANK / 2 - 4 + d.y * 17,
-          w: 8, h: 8, dx: d.x, dy: d.y, speed: fromPlayer ? 390 : 230, owner: fromPlayer ? 'player' : 'enemy' });
-      }
-      function finish(won) {
-        ended = true; message.hidden = false;
-        messageTitle.textContent = won ? '胜利！' : '游戏结束';
-        messageText.textContent = won ? `你击败了所有敌军，得分 ${score}。点击“重新开始”再玩一局。` : `最终得分 ${score}。点击“重新开始”再试一次。`;
-      }
-      function update(dt, time) {
-        if (paused || ended) return;
-        let dx = 0, dy = 0;
-        if (keys.has('arrowup') || keys.has('w')) { dy = -1; player.dir = 'up'; }
-        else if (keys.has('arrowdown') || keys.has('s')) { dy = 1; player.dir = 'down'; }
-        else if (keys.has('arrowleft') || keys.has('a')) { dx = -1; player.dir = 'left'; }
-        else if (keys.has('arrowright') || keys.has('d')) { dx = 1; player.dir = 'right'; }
-        if (dx || dy) moveTank(player, dx * player.speed * dt, dy * player.speed * dt);
-        shotCooldown -= dt;
-        if (keys.has(' ') && shotCooldown <= 0) { fire(player, true); shotCooldown = 0.32; }
-
-        enemies.forEach(enemy => {
-          enemy.turnAt -= dt; enemy.fireAt -= dt;
-          if (enemy.turnAt <= 0) {
-            enemy.dir = ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)];
-            enemy.turnAt = 0.7 + Math.random() * 1.1;
-          }
-          if (enemy.fireAt <= 0) { fire(enemy, false); enemy.fireAt = 1.3 + Math.random() * 1.5; }
-          const d = directions[enemy.dir], oldX = enemy.x, oldY = enemy.y;
-          moveTank(enemy, d.x * enemy.speed * dt, d.y * enemy.speed * dt);
-          if (oldX === enemy.x && oldY === enemy.y) { enemy.dir = ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)]; enemy.turnAt = 0.5; }
-        });
-
-        bullets = bullets.filter(b => {
-          b.x += b.dx * b.speed * dt; b.y += b.dy * b.speed * dt;
-          if (b.x < 0 || b.y < 0 || b.x + b.w > W || b.y + b.h > H || obstacles.some(w => overlaps(b, w))) return false;
-          if (b.owner === 'player') {
-            const hit = enemies.find(e => overlaps(b, { x: e.x, y: e.y, w: TANK, h: TANK }));
-            if (hit) {
-              enemies = enemies.filter(e => e !== hit); score += 100; defeated++;
-              scoreEl.textContent = score; remainingEl.textContent = enemies.length;
-              if (enemies.length === 0) finish(true);
-              return false;
-            }
-          } else if (overlaps(b, { x: player.x, y: player.y, w: TANK, h: TANK })) {
-            lives--; livesEl.textContent = lives;
-            if (lives <= 0) finish(false);
-            return false;
-          }
-          return true;
-        });
-      }
-      function drawTank(tank, isPlayer) {
-        ctx.save(); ctx.translate(tank.x + TANK / 2, tank.y + TANK / 2);
-        const angle = { up: 0, right: Math.PI / 2, down: Math.PI, left: -Math.PI / 2 }[tank.dir];
-        ctx.rotate(angle);
-        ctx.fillStyle = '#101719'; ctx.fillRect(-15, -12, 30, 7); ctx.fillRect(-15, 5, 30, 7);
-        ctx.fillStyle = tank.color; ctx.fillRect(-11, -11, 22, 22);
-        ctx.fillStyle = isPlayer ? '#d9ffe9' : '#ffe0e0'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = tank.color; ctx.fillRect(-3, -20, 6, 22);
-        ctx.restore();
-      }
-      function draw() {
-        ctx.fillStyle = '#18262b'; ctx.fillRect(0, 0, W, H);
-        ctx.strokeStyle = '#ffffff08'; ctx.lineWidth = 1;
-        for (let x = 0; x <= W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-        for (let y = 0; y <= H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-        obstacles.forEach(w => { ctx.fillStyle = '#8b7158'; ctx.fillRect(w.x, w.y, w.w, w.h); ctx.fillStyle = '#b69773'; ctx.fillRect(w.x + 3, w.y + 3, w.w - 6, 5); });
-        drawTank(player, true); enemies.forEach(e => drawTank(e, false));
-        bullets.forEach(b => { ctx.fillStyle = b.owner === 'player' ? '#fff29a' : '#ff8585'; ctx.beginPath(); ctx.arc(b.x + 4, b.y + 4, 4, 0, Math.PI * 2); ctx.fill(); });
-        if (paused && !ended) { ctx.fillStyle = '#0009'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#fff'; ctx.font = 'bold 42px system-ui'; ctx.textAlign = 'center'; ctx.fillText('已暂停 · 按 P 继续', W / 2, H / 2); }
-      }
-      function frame(now) {
-        const dt = Math.min((now - lastTime) / 1000, 0.04); lastTime = now;
-        update(dt, now / 1000); draw(); requestAnimationFrame(frame);
-      }
-      window.addEventListener('keydown', event => {
-        const key = event.key.toLowerCase();
-        if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) event.preventDefault();
-        if (key === 'p' && !ended) paused = !paused;
-        keys.add(key);
-      });
-      window.addEventListener('keyup', event => keys.delete(event.key.toLowerCase()));
-      window.addEventListener('blur', () => keys.clear());
-      document.querySelector('#restart').addEventListener('click', reset);
-      reset(); requestAnimationFrame(frame);
-    })();
-  </script>
-</body>
+    <script type="module" src="assets/js/main.js"></script>
+  </body>
 </html>

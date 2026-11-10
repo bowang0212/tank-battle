@@ -1,0 +1,46 @@
+export const CONFIG = {
+  canvas: {
+    width: 800,
+    height: 600,
+  },
+  tankSize: 30,
+  player: {
+    speed: 190,
+    color: '#58d68d',
+    maxLives: 3,
+    fireCooldown: 0.32,
+  },
+  enemy: {
+    count: 8,
+    minSpeed: 70,
+    maxSpeed: 95,
+    fireMin: 1.3,
+    fireMax: 2.8,
+    turnMin: 0.7,
+    turnMax: 1.8,
+    color: '#e85d5d',
+  },
+  bullet: {
+    playerSpeed: 390,
+    enemySpeed: 230,
+    size: 8,
+    hitScore: 100,
+  },
+  obstacles: [
+    { x: 150, y: 120, w: 110, h: 30 },
+    { x: 540, y: 120, w: 110, h: 30 },
+    { x: 350, y: 80, w: 100, h: 30 },
+    { x: 90, y: 280, w: 120, h: 30 },
+    { x: 590, y: 280, w: 120, h: 30 },
+    { x: 340, y: 250, w: 120, h: 30 },
+    { x: 150, y: 440, w: 110, h: 30 },
+    { x: 540, y: 440, w: 110, h: 30 },
+    { x: 350, y: 500, w: 100, h: 30 },
+  ],
+  directions: {
+    up: { x: 0, y: -1 },
+    down: { x: 0, y: 1 },
+    left: { x: -1, y: 0 },
+    right: { x: 1, y: 0 },
+  },
+};

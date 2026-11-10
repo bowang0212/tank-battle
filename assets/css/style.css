@@ -1,0 +1,131 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  padding: 24px;
+  display: grid;
+  place-items: center;
+  color: #eef4f3;
+  background: radial-gradient(ellipse at top, #263a42, #101820 68%);
+}
+
+.game {
+  width: min(100%, 840px);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(1.35rem, 4vw, 2rem);
+  letter-spacing: 0.06em;
+}
+
+.stats {
+  display: flex;
+  gap: 18px;
+  color: #c8d7d4;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats strong {
+  color: #fff;
+}
+
+.board {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #536a69;
+  border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.53);
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #18262b;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  color: #b6c7c4;
+  font-size: 0.92rem;
+}
+
+button {
+  border: 1px solid #83c9ad;
+  border-radius: 6px;
+  padding: 9px 14px;
+  color: #10251e;
+  background: #83c9ad;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: #a0e2c6;
+}
+
+.message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(11, 20, 20, 0.72);
+  text-align: center;
+}
+
+.message[hidden] {
+  display: none;
+}
+
+.message div {
+  padding: 20px;
+}
+
+.message h2 {
+  margin: 0 0 8px;
+  font-size: clamp(1.8rem, 7vw, 3rem);
+}
+
+.message p {
+  margin: 0;
+  color: #d3e2df;
+}
+
+@media (max-width: 560px) {
+  body {
+    padding: 14px;
+  }
+
+  header,
+  .toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .stats {
+    gap: 12px;
+  }
+}
